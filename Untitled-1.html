@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S.T.U.D.Y. Task Manager</title>
+    <style>
+        /* 1. 整体页面与容器样式 (CSS) */
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #f4f7f6; 
+            padding: 15px; 
+            color: #333;
+            margin: 0;
+        }
+        .container { 
+            max-width: 100%; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            box-sizing: border-box;
+        }
+        h2 { 
+            text-align: center; 
+            color: #0056b3; 
+            margin-top: 0;
+            margin-bottom: 20px; 
+            font-size: 22px;
+        }
+        
+        /* 2. 表单输入区域样式 (Input) */
+        .form-group { 
+            margin-bottom: 15px; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        label { 
+            font-weight: 600; 
+            margin-bottom: 5px; 
+            font-size: 14px; 
+        }
+        input, select { 
+            padding: 10px; 
+            border: 1px solid #ddd; 
+            border-radius: 6px; 
+            font-size: 14px; 
+            outline: none; 
+            box-sizing: border-box;
+        }
+        input:focus, select:focus { 
+            border-color: #0056b3; 
+        }
+        
+        /* 添加任务按钮 */
+        .btn-add { 
+            background-color: #0056b3; 
+            color: white; 
+            border: none; 
+            padding: 12px; 
+            border-radius: 6px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            width: 100%;
+            transition: background 0.2s; 
+        }
+        .btn-add:hover { 
+            background-color: #003d82; 
+        }
+        
+        /* 红色错误提示框 (对应前端验证逻辑) */
+        .error-msg { 
+            color: #dc3545; 
+            font-size: 13px; 
+            margin-top: 5px; 
+            display: none; 
+            font-weight: bold; 
+        }
+        
+        /* 3. 任务列表展示区域样式 (Output) */
+        .task-list { 
+            margin-top: 25px; 
+        }
+        .task-item { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 12px 15px; 
+            border-bottom: 1px solid #eee; 
+            background: #fff; 
+            margin-bottom: 10px; 
+            border-radius: 6px; 
+            border-left: 5px solid #ccc; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02); 
+        }
+        
+        /* 根据不同的优先级，动态改变任务卡片左侧边条的颜色 (Priority Color) */
+        .priority-High { border-left-color: #dc3545; }
+        .priority-Medium { border-left-color: #ffc107; }
+        .priority-Low { border-left-color: #28a745; }
+        
+        .task-info h4 { 
+            margin: 0 0 5px 0; 
+            font-size: 15px; 
+            word-break: break-word;
+        }
+        .task-info p { 
+            margin: 0; 
+            font-size: 12px; 
+            color: #666; 
+        }
+        
+        /* 删除按钮样式 */
+        .btn-delete { 
+            background-color: #fff; 
+            color: #dc3545; 
+            border: 1px solid #dc3545; 
+            padding: 5px 10px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 12px; 
+            flex-shrink: 0;
+            margin-left: 10px;
+            transition: all 0.2s; 
+        }
+        .btn-delete:hover { 
+            background-color: #dc3545; 
+            color: white; 
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📅 S.T.U.D.Y. Task Manager</h2>
+    
+    <!-- 1. 输入模块界面 (Input Section) -->
+    <div class="form-group">
+        <label for="taskTitle">Task Title</label>
+        <input type="text" id="taskTitle" placeholder="e.g., Complete Mini IT Preliminary Report">
+        <!-- 前端输入验证报错提示框 -->
+        <div id="errorMsg" class="error-msg">Task title cannot be empty!</div>
+    </div>
+    
+    <div class="form-group">
+        <label for="taskDeadline">Deadline</label>
+        <!-- HTML5 原生自带的日历日期选择器 -->
+        <input type="date" id="taskDeadline">
+    </div>
+    
+    <div class="form-group">
+        <label for="taskPriority">Priority</label>
+        <select id="taskPriority">
+            <option value="High">🔴 High Priority</option>
+            <option value="Medium">🟡 Medium Priority</option>
+            <option value="Low">🟢 Low Priority</option>
+        </select>
+    </div>
+    
+    <button class="btn-add" onclick="addNewTask()">Add Task</button>
+    
+    <!-- 2. 数据更新输出界面 (Output Section) -->
+    <div class="task-list" id="taskList">
+        <!-- JavaScript 动态生成的任务条目会放置在这里 -->
+    </div>
+</div>
+
+<script>
+    // 页面每次加载/刷新时，自动读取本地 Local Storage 数据并展示 (Retrieve Data)
+    document.addEventListener('DOMContentLoaded', displayTasks);
+
+    function addNewTask() {
+        // A. 获取用户的输入数据 (Get Input Data)
+        const title = document.getElementById('taskTitle').value.trim();
+        const deadline = document.getElementById('taskDeadline').value;
+        const priority = document.getElementById('taskPriority').value;
+        const errorMsg = document.getElementById('errorMsg');
+
+        // B. 前端数据完整性验证 (If-Else Validation - 对应流程图逻辑)
+        if (title === "") {
+            errorMsg.style.display = "block"; // 输入为空，触发报错分支
+            return;
+        } else {
+            errorMsg.style.display = "none";  // 验证通过，隐藏报错
+        }
+
+        // 如果用户没选日期，给予一个默认文本
+        const finalDeadline = deadline ? deadline : "No deadline set";
+
+        // 将输入的数据打包成一个标准的 JavaScript 任务对象
+        const taskObj = {
+            id: Date.now(), // 采用当前时间戳作为绝对唯一的任务 ID，方便后续进行精确删除
+            title: title,
+            deadline: finalDeadline,
+            priority: priority
+        };
+
+        // C. 数据处理与本地持久化保存 (Process - Local Storage API)
+        let tasks = localStorage.getItem('study_tasks') ? JSON.parse(localStorage.getItem('study_tasks')) : [];
+        tasks.push(taskObj); // 往数组里添加新任务
+        localStorage.setItem('study_tasks', JSON.stringify(tasks)); // 重新打包存回本地浏览器缓存
+
+        // 重置清空输入框，方便用户下一次输入
+        document.getElementById('taskTitle').value = "";
+        document.getElementById('taskDeadline').value = "";
+
+        // D. 触发重新渲染，让新任务立刻出现在页面上 (Output Display)
+        displayTasks();
+    }
+
+    function displayTasks() {
+        const taskListDiv = document.getElementById('taskList');
+        taskListDiv.innerHTML = ""; // 每次更新前先清空旧的 HTML 内容，防止列表重叠
+
+        // 从浏览器的 Local Storage 读取出数据
+        let tasks = localStorage.getItem('study_tasks') ? JSON.parse(localStorage.getItem('study_tasks')) : [];
+
+        // 遍历读取出来的任务数组，动态生成 HTML 卡片结构
+        tasks.forEach(task => {
+            const taskItem = document.createElement('div');
+            // 动态挂载对应的优先级 Class (例如 priority-High)，从而让 CSS 渲染不同颜色的侧边条
+            taskItem.className = `task-item priority-${task.priority}`; 
+            
+            taskItem.innerHTML = `
+                <div class="task-info">
+                    <h4>${task.title}</h4>
+                    <p>⏰ Due: ${task.deadline} | 📌 ${task.priority}</p>
+                </div>
+                <button class="btn-delete" onclick="deleteTask(${task.id})">Delete</button>
+            `;
+            // 将生成的卡片放入列表容器中展示出来
+            taskListDiv.appendChild(taskItem);
+        });
+    }
+
+    function deleteTask(id) {
+        // 根据唯一 ID 从本地缓存中检索并剔除该任务 (Delete Process)
+        let tasks = JSON.parse(localStorage.getItem('study_tasks'));
+        // 过滤掉当前被点击的这个 ID 的任务
+        tasks = tasks.filter(task => task.id !== id);
+        // 将删除后的全新数组重新存回 Local Storage 覆盖原数据
+        localStorage.setItem('study_tasks', JSON.stringify(tasks));
+        
+        // 重新刷新列表的 Output 界面展现
+        displayTasks();
+    }
+</script>
+
+</body>
+</html>
